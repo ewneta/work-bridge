@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="am"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ሥራ ድልድይ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f5ef;--card:#fff;--ink:#15233b;--mut:#5d6677;--line:#dcd8cb;--brand:#15233b;--on:#fff;--acc:#e4a024;--ok:#1d7a5f;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1624;--card:#18223a;--ink:#eef0f5;--mut:#a3adc0;--line:#2b3754;--brand:#e4a024;--on:#15233b;--ok:#47c29b;--bad:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Ethiopic",system-ui,sans-serif;line-height:1.6;padding:env(safe-area-inset-top) 0 84px}
+main{max-width:640px;margin:0 auto;padding:16px}.top{display:flex;justify-content:space-between;align-items:center}
+h1{font-size:1.5rem;margin:6px 0}.lang button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:3px 9px;font:inherit;font-size:.82rem}
+.lang button.on{background:var(--brand);color:var(--on)}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:4px}
+label{display:block;font-weight:600;margin-top:12px;font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}.card h3{margin:0}
+.meta{color:var(--mut);font-size:.88rem}.tag{display:inline-block;font-size:.8rem;padding:2px 10px;border-radius:6px;background:color-mix(in srgb,var(--acc) 22%,transparent)}
+.btn{border:0;border-radius:10px;padding:9px 16px;font:inherit;font-weight:600;background:var(--brand);color:var(--on);cursor:pointer;text-decoration:none;display:inline-block;margin:4px 6px 0 0}
+.btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}.warn{color:var(--bad)}.ok{color:var(--ok)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;color:var(--mut);font:inherit;font-size:.8rem;padding:10px 2px}nav button.on{color:var(--ink);font-weight:800;box-shadow:inset 0 3px 0 var(--acc)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 18px;border-radius:99px;z-index:9}
+</style></head><body>
+<main><div class="top"><h1 id="h"></h1><div class="lang" id="lg"></div></div><div id="v"></div></main>
+<nav id="nav"></nav><div id="rc"></div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,GoogleAuthProvider,signInWithPopup,RecaptchaVerifier,signInWithPhoneNumber,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,updateDoc,addDoc,deleteDoc,collection,query,where,onSnapshot,serverTimestamp,Timestamp,getDocs,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 1) Paste your Firebase web config here (Project settings → General → Your apps)
+const CFG={apiKey:"AIzaSyCrMC7Bjwa62N6m-YWQfyjmJyYfok0qxgc",authDomain:"work-bridge-81612.firebaseapp.com",projectId:"work-bridge-81612",storageBucket:"work-bridge-81612.firebasestorage.app",messagingSenderId:"883051978992",appId:"1:883051978992:web:577d35339d8cf0771ca235"};
+const PAY="Telebirr 0910924731 / CBE 1000228247298"; // 2) Your Telebirr / bank account number for the 100 birr fee
+const app=initializeApp(CFG),auth=getAuth(app),db=getFirestore(app);
+
+const T={
+am:{app:"ሥራ ድልድይ",browse:"ዝርዝር",post:"ልጥፍ",acc:"መለያ",adm:"አስተዳዳሪ",g:"በ Gmail ግባ",ph:"በስልክ ግባ",sc:"ኮድ ላክ",cd:"የተላከ ኮድ",ok:"አረጋግጥ",out:"ውጣ",
+ role:"እኔ ማን ነኝ",seeker:"ሥራ ፈላጊ",employer:"ቀጣሪ",pro:"ባለሙያ (አናጺ፣ ግንበኛ፣ ዶክተር…)",seller:"ሻጭ (እቃ፣ ቤት፣ መሬት)",
+ job:"ሥራ ማስታወቂያ",service:"ባለሙያ",goods:"እቃ",house:"ቤት",land:"መሬት",all:"ሁሉም",
+ t:"ርዕስ",d:"ሙሉ ገለጻ",p:"ዋጋ (ብር)",c:"ከተማ",sz:"ስፋት / ክፍሎች",tel:"ስልክ",pub:"አትም",
+ pay:"የአባልነት ክፍያ 100 ብር በወር። ወደ "+"{P}"+" ከፍለው የግብይት ቁጥሩን ያስገቡ።",ref:"የግብይት ቁጥር",send:"ላክ",
+ until:"አባልነት እስከ",nomem:"አባል አይደሉም",cred:"የማስረጃ ሊንክ (Google Drive / Telegram)",up:"አስቀምጥ",
+ ver:"በአስተዳዳሪ ተረጋግጧል",unver:"ማስረጃ በመጠበቅ ላይ",need:"ለመለጠፍ ክፍያ እና (ለባለሙያ) ማስረጃ ማረጋገጫ ያስፈልጋል።",
+ min:"ገለጻ ቢያንስ 100 ፊደል መሆን አለበት።",none:"ምንም የለም",appr:"አጽድቅ",rej:"ውድቅ",del:"ሰርዝ",done:"ተደርጓል",err:"አልተሳካም",pend:"የክፍያ ጥያቄ ተልኳል",
+ nt:"ማሳወቂያዎች",exp:"የአባልነት ክፍያዎ አብቅቷል፤ ልጥፎችዎ ተደብቀዋል። 100 ብር ይክፈሉ።",soon:"የአባልነት ክፍያዎ በቅርቡ ያበቃል (ከ3 ቀን በታች)።",call:"ደውል",pp:"የሚጠብቁ ክፍያዎች",pv:"ማረጋገጫ የሚጠብቁ ባለሙያዎች",vf:"አረጋግጥ",files:"ፋይሎች"},
+en:{app:"Work Bridge",browse:"Browse",post:"Post",acc:"Account",adm:"Admin",g:"Sign in with Gmail",ph:"Sign in with phone",sc:"Send code",cd:"Code",ok:"Confirm",out:"Sign out",
+ role:"I am a",seeker:"Job seeker",employer:"Employer",pro:"Professional (carpenter, mason, doctor…)",seller:"Seller (goods, house, land)",
+ job:"Job",service:"Professional",goods:"Goods",house:"House",land:"Land",all:"All",
+ t:"Title",d:"Full description",p:"Price (birr)",c:"City",sz:"Size / rooms",tel:"Phone",pub:"Publish",
+ pay:"Membership is 100 birr per month. Pay to {P} and enter the transaction number.",ref:"Transaction number",send:"Send",
+ until:"Member until",nomem:"Not a member",cred:"Credentials link (Google Drive / Telegram)",up:"Save",
+ ver:"Verified by admin",unver:"Awaiting verification",need:"Posting needs paid membership and, for professionals, verified credentials.",
+ min:"Description must be at least 100 characters.",none:"Nothing here",appr:"Approve",rej:"Reject",del:"Delete",done:"Done",err:"Failed",pend:"Payment sent for review",
+ nt:"Notifications",exp:"Your membership expired; your posts are hidden. Pay 100 birr.",soon:"Your membership ends in under 3 days.",call:"Call",pp:"Pending payments",pv:"Professionals awaiting verification",vf:"Verify",files:"Files"},
+om:{app:"Riqicha Hojii",browse:"Tarree",post:"Maxxansi",acc:"Herrega",adm:"Bulchaa",g:"Gmail'n seeni",ph:"Bilbilaan seeni",sc:"Koodii ergi",cd:"Koodii",ok:"Mirkaneessi",out:"Ba'i",
+ role:"Ani",seeker:"Hojii barbaaddu",employer:"Hojjachiisaa",pro:"Ogeessa (kallacha, ijaaraa, doktora…)",seller:"Gurgurtaa (meeshaa, mana, lafa)",
+ job:"Hojii",service:"Ogeessa",goods:"Meeshaa",house:"Mana",land:"Lafa",all:"Hunda",
+ t:"Mata-duree",d:"Ibsa guutuu",p:"Gatii (birrii)",c:"Magaalaa",sz:"Bal'ina / kutaalee",tel:"Bilbila",pub:"Maxxansi",
+ pay:"Miseensummaan ji'aaf birrii 100. {P} irratti kaffalii lakkoofsa daddabarsaa galchi.",ref:"Lakkoofsa daddabarsaa",send:"Ergi",
+ until:"Miseensa hanga",nomem:"Miseensa miti",cred:"Hidhaa ragaa (Google Drive / Telegram)",up:"Olkaa'i",
+ ver:"Bulchaan mirkaneesseera",unver:"Mirkaneessa eegaa jira",need:"Maxxansuuf kaffaltii fi ogeessaaf ragaan mirkanaa'uu qaba.",
+ min:"Ibsi yoo xiqqaate qubee 100 ta'uu qaba.",none:"Homtuu hin jiru",appr:"Mirkaneessi",rej:"Didi",del:"Haqi",done:"Raawwatameera",err:"Hin milkoofne",pend:"Kaffaltiin ergameera",
+ nt:"Beeksisa",exp:"Miseensummaan kee xumurameera; maxxansawwan kee dhokataniiru. Birrii 100 kaffali.",soon:"Miseensummaan kee guyyaa 3 gadi xumuramaa jira.",call:"Bilbili",pp:"Kaffaltiiwwan eegaa jiran",pv:"Ogeessota mirkaneessa eegaa jiran",vf:"Mirkaneessi",files:"Faayilii"}};
+let lang=localStorage.getItem("lang")||"am",tab="browse",kind="all",user=null,prof=null,isAdm=false,posts=[],notes=[],pays=[],pros=[],conf=null;
+const t=k=>(T[lang][k]||k).replace("{P}",PAY);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $=i=>document.getElementById(i);
+const toast=m=>{const d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)};
+const paid=()=>prof?.paidUntil&&prof.paidUntil.toMillis()>Date.now();
+const KINDS={employer:["job"],pro:["service"],seller:["goods","house","land"],seeker:[]};
+
+onAuthStateChanged(auth,async u=>{
+  user=u;prof=null;isAdm=false;
+  if(u){
+    const r=doc(db,"users",u.uid);let s=await getDoc(r);
+    if(!s.exists()){await setDoc(r,{name:u.displayName||u.phoneNumber||"",role:"seeker",verified:false,cred:[],at:serverTimestamp()});s=await getDoc(r)}
+    prof=s.data();
+    isAdm=(await getDoc(doc(db,"admins",u.uid))).exists();
+    if(isAdm){
+      onSnapshot(query(collection(db,"payments"),where("status","==","pending")),q=>{pays=q.docs.map(d=>({id:d.id,...d.data()}));render()});
+      onSnapshot(query(collection(db,"users"),where("role","==","pro"),where("verified","==",false)),q=>{pros=q.docs.map(d=>({id:d.id,...d.data()}));render()});
+    }
+  }
+  render();
+});
+onSnapshot(query(collection(db,"posts"),where("active","==",true)),q=>{posts=q.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.expiresAt||p.expiresAt.toMillis()>Date.now()).sort((a,b)=>(b.at?.toMillis?.()||0)-(a.at?.toMillis?.()||0));render()});
+
+function login(){return '<div class="card"><button class="btn" data-a="google">'+t("g")+'</button><label>'+t("ph")+'</label><input id="phn" type="tel" placeholder="+2519…"><button class="btn g" data-a="sms">'+t("sc")+'</button>'+(conf?'<label>'+t("cd")+'</label><input id="code" inputmode="numeric"><button class="btn" data-a="code">'+t("ok")+'</button>':'')+'</div>'}
+function postCard(p){
+  const own=user&&(p.owner===user.uid||isAdm);
+  return '<div class="card"><span class="tag">'+t(p.kind)+'</span><h3>'+esc(p.title)+'</h3><div class="meta">'+esc(p.city)+(p.price?' · '+Number(p.price).toLocaleString()+' ብር':'')+(p.size?' · '+esc(p.size):'')+'</div><p>'+esc(p.desc)+'</p>'+
+  (/^[0-9+ ]+$/.test(p.phone||"")?'<a class="btn g" href="tel:'+esc(p.phone.replace(/ /g,""))+'">'+t("call")+'</a>':'')+(own?'<button class="btn g" data-a="del" data-id="'+p.id+'">'+t("del")+'</button>':'')+'</div>';
+}
+function postForm(){
+  const ks=KINDS[prof.role];if(!ks.length)return '<p class="meta">'+t("need")+'</p>';
+  const needPay=prof.role==="pro"||prof.role==="seller";
+  if(needPay&&(!paid()||(prof.role==="pro"&&!prof.verified)))return '<div class="card warn">'+t("need")+'</div>';
+  return '<div class="card"><label>'+t("post")+'</label><select id="pk">'+ks.map(k=>'<option value="'+k+'">'+t(k)+'</option>').join("")+'</select>'+
+  ['t','c','p','sz','tel'].map(f=>'<label>'+t(f)+'</label><input id="pf_'+f+'">').join("")+'<label>'+t("d")+'</label><textarea id="pf_d" rows="5"></textarea><button class="btn" data-a="pub">'+t("pub")+'</button></div>';
+}
+function account(){
+  if(!user)return login();
+  let h='<div class="card"><b>'+esc(prof.name||user.phoneNumber)+'</b><label>'+t("role")+'</label><select id="role">'+Object.keys(KINDS).map(r=>'<option value="'+r+'"'+(r===prof.role?' selected':'')+'>'+t(r)+'</option>').join("")+'</select><button class="btn g" data-a="role">'+t("ok")+'</button></div>';
+  if(prof.role==="pro"||prof.role==="seller"){
+    h+='<div class="card"><b>'+(paid()?'<span class="ok">'+t("until")+' '+prof.paidUntil.toDate().toLocaleDateString()+'</span>':'<span class="warn">'+t("nomem")+'</span>')+'</b><p class="meta">'+t("pay")+'</p><input id="ref" placeholder="'+t("ref")+'"><button class="btn" data-a="payreq">'+t("send")+'</button></div>';
+  }
+  if(prof.role==="pro")h+='<div class="card"><b>'+(prof.verified?'<span class="ok">'+t("ver")+'</span>':'<span class="warn">'+t("unver")+'</span>')+'</b><label>'+t("cred")+'</label><input id="cf" value="'+esc(prof.credLink||"")+'" placeholder="https://..."><button class="btn" data-a="cred">'+t("up")+'</button></div>';
+  if(notes.length)h+='<div class="card"><b>'+t("nt")+'</b>'+notes.sort((a,b)=>(b.at?.toMillis?.()||0)-(a.at?.toMillis?.()||0)).slice(0,5).map(n=>'<p class="meta">• '+esc(n.body)+'</p>').join("")+'</div>';
+  return h+'<button class="btn g" data-a="out">'+t("out")+'</button>';
+}
+function admin(){
+  let h='<h3>'+t("pp")+'</h3>'+(pays.length?pays.map(p=>'<div class="card"><b>'+esc(p.name)+'</b><div class="meta">'+t("ref")+': '+esc(p.ref)+'</div><button class="btn" data-a="appr" data-id="'+p.id+'">'+t("appr")+'</button><button class="btn g" data-a="rej" data-id="'+p.id+'">'+t("rej")+'</button></div>').join(""):'<p class="meta">'+t("none")+'</p>');
+  h+='<h3>'+t("pv")+'</h3>'+(pros.length?pros.map(u=>'<div class="card"><b>'+esc(u.name)+'</b><div class="meta">'+t("files")+': '+(/^https?:\/\//.test(u.credLink||"")?'<a href="'+esc(u.credLink)+'" target="_blank" rel="noopener">link</a>':"—")+'</div><button class="btn" data-a="verify" data-id="'+u.id+'">'+t("vf")+'</button></div>').join(""):'<p class="meta">'+t("none")+'</p>');
+  return h;
+}
+function render(){
+  $("h").textContent=t("app");
+  $("lg").innerHTML=["am","en","om"].map(l=>'<button class="'+(l===lang?'on':'')+'" data-l="'+l+'">'+l.toUpperCase()+'</button>').join("");
+  const tabs=["browse","post","acc"].concat(isAdm?["adm"]:[]);
+  $("nav").innerHTML=tabs.map(x=>'<button class="'+(x===tab?'on':'')+'" data-t="'+x+'">'+t(x)+'</button>').join("");
+  let h="",ban="";if(user&&prof&&(prof.role==="pro"||prof.role==="seller")&&prof.paidUntil&&prof.paidUntil.toMillis()-Date.now()<=3*864e5)ban='<div class="card warn">'+t(prof.paidUntil.toMillis()<Date.now()?"exp":"soon")+'</div>';
+  if(tab==="browse")h='<select id="kf"><option value="all">'+t("all")+'</option>'+["job","service","goods","house","land"].map(k=>'<option value="'+k+'"'+(k===kind?' selected':'')+'>'+t(k)+'</option>').join("")+'</select>'+(posts.filter(p=>kind==="all"||p.kind===kind).map(postCard).join("")||'<p class="meta">'+t("none")+'</p>');
+  if(tab==="post")h=user?postForm():login();
+  if(tab==="acc")h=account();
+  if(tab==="adm"&&isAdm)h=admin();
+  const keep=document.activeElement&&["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)&&document.activeElement.id!=="kf";
+  if(keep&&tab!=="browse")return; // don't wipe fields while typing
+  $("v").innerHTML=ban+h;
+}
+document.addEventListener("change",e=>{if(e.target.id==="kf"){kind=e.target.value;render()}});
+document.addEventListener("click",async e=>{
+  const x=e.target.closest("[data-a],[data-t],[data-l]");if(!x)return;const d=x.dataset;
+  if(d.l){lang=d.l;localStorage.setItem("lang",lang);return render()}
+  if(d.t){tab=d.t;document.activeElement?.blur();return render()}
+  e.preventDefault();const v=i=>$(i)?.value.trim();
+  try{
+  if(d.a==="google")await signInWithPopup(auth,new GoogleAuthProvider());
+  if(d.a==="sms"){window.rv=window.rv||new RecaptchaVerifier(auth,"rc",{size:"invisible"});conf=await signInWithPhoneNumber(auth,v("phn"),window.rv);tab=tab;document.activeElement?.blur();render()}
+  if(d.a==="code"){await conf.confirm(v("code"));conf=null}
+  if(d.a==="out")await signOut(auth);
+  if(d.a==="role"){await updateDoc(doc(db,"users",user.uid),{role:v("role")});prof.role=v("role");toast(t("done"));render()}
+  if(d.a==="payreq"){if(!v("ref"))return;await addDoc(collection(db,"payments"),{uid:user.uid,name:prof.name||user.phoneNumber,ref:v("ref"),amount:100,status:"pending",at:serverTimestamp()});toast(t("pend"))}
+  if(d.a==="cred"){prof.credLink=v("cf");await updateDoc(doc(db,"users",user.uid),{credLink:prof.credLink});toast(t("done"))}
+  if(d.a==="pub"){
+    const k=v("pk"),desc=v("pf_d");if(k!=="job"&&k!=="service"&&desc.length<100)return toast(t("min"));
+    if(k==="service"&&desc.length<30)return toast(t("min"));
+    await addDoc(collection(db,"posts"),{kind:k,title:v("pf_t"),city:v("pf_c"),price:Number(v("pf_p"))||0,size:v("pf_sz"),phone:v("pf_tel"),desc,owner:user.uid,active:true,expiresAt:k==="job"?null:prof.paidUntil,at:serverTimestamp()});
+    toast(t("done"));tab="browse";render()}
+  if(d.a==="del"){await deleteDoc(doc(db,"posts",d.id))}
+  if(d.a==="verify"){await updateDoc(doc(db,"users",d.id),{verified:true});toast(t("done"))}
+  if(d.a==="rej"){await updateDoc(doc(db,"payments",d.id),{status:"rejected"})}
+  if(d.a==="appr"){
+    const p=pays.find(z=>z.id===d.id),ur=doc(db,"users",p.uid),cur=(await getDoc(ur)).data().paidUntil;
+    const b=writeBatch(db);const np=Timestamp.fromMillis(Math.max(Date.now(),cur?cur.toMillis():0)+30*864e5);b.update(ur,{paidUntil:np});
+    b.update(doc(db,"payments",d.id),{status:"approved"});
+    (await getDocs(query(collection(db,"posts"),where("owner","==",p.uid)))).forEach(z=>b.update(z.ref,z.data().kind==="job"?{active:true}:{active:true,expiresAt:np}));
+    await b.commit();toast(t("done"))}
+  }catch(err){console.error(err);toast(t("err"))}
+});
+render();
+</script></body></html>
